@@ -72,6 +72,13 @@ browser_cookies.json
 # Ignore tharun virtual environment folder
 tharun/
 
+# Debug / temp files
+tgts_scraper/debug_*.json
+tgts_scraper/debug_*.html
+tgts_scraper/tmp_*.py
+tgts_scraper/tgts_tenders.db
+tgts_scraper/*.db
+
 # Temporary files
 *.tmp
 *.bak
