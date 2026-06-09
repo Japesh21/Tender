@@ -56,6 +56,18 @@ class WhatsAppNotifier:
             logger.error(f"Error sending new tender alert: {e}")
             return False
 
+    def send_daily_report(self, phone_numbers: List[str], all_tenders: List[dict]) -> bool:
+        """Send full daily report when no new tenders detected"""
+        try:
+            if not self.client:
+                logger.error("Twilio client not available")
+                return False
+            message = self._build_tender_message(all_tenders, "DAILY")
+            return self._send_message(phone_numbers, message)
+        except Exception as e:
+            logger.error(f"Error sending daily report: {e}")
+            return False
+
     def send_closing_soon_alert(self, phone_numbers: List[str], closing_tenders: List[dict]) -> bool:
         """Send WhatsApp alert about tenders closing soon"""
         try:
@@ -182,7 +194,10 @@ Reports: CSV & Excel formats available
     @staticmethod
     def _build_tender_message(tenders: List[dict], alert_type: str) -> str:
         """Build compact WhatsApp message with all tender info (split into chunks if too long)"""
-        header = f"📊 TGTS Tender Report - {len(tenders)} Tenders\n{'='*40}\n\n"
+        if alert_type == "NEW":
+            header = f"🆕 NEW Tenders Alert - {len(tenders)} new tender(s)!\n{'='*40}\n\n"
+        else:
+            header = f"📊 TGTS Daily Report - {len(tenders)} Tenders\n{'='*40}\n\n"
 
         tender_lines = []
         for i, tender in enumerate(tenders, 1):

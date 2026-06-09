@@ -254,18 +254,24 @@ class TenderScraper:
             logger.error(f"Error generating reports: {e}")
 
     def send_notifications(self, new_tenders: List[Dict], updated_tenders: List[Dict], all_tenders: List[Dict]):
-        """Send email and WhatsApp notifications — always sends full report every run"""
+        """Send notifications — new tender alert on both channels when new tenders found, else full daily report"""
         try:
-            # Always send WhatsApp with all tenders every run
-            if self.whatsapp_notifier and WHATSAPP_PHONE_TO_LIST and all_tenders:
-                logger.info(f"Sending WhatsApp report with {len(all_tenders)} tenders...")
-                self.whatsapp_notifier.send_new_tender_alert(WHATSAPP_PHONE_TO_LIST, all_tenders)
+            if new_tenders:
+                # Instant alert with ONLY the new tenders on both email + WhatsApp
+                logger.info(f"NEW tenders detected: {len(new_tenders)} — sending alerts")
+                if self.email_notifier and EMAIL_TO_LIST:
+                    self.email_notifier.send_new_tender_alert(EMAIL_TO_LIST, new_tenders)
+                if self.whatsapp_notifier and WHATSAPP_PHONE_TO_LIST:
+                    self.whatsapp_notifier.send_new_tender_alert(WHATSAPP_PHONE_TO_LIST, new_tenders)
+            else:
+                # No new tenders — WhatsApp gets the full daily report so user always gets a morning message
+                logger.info("No new tenders — sending full daily report to WhatsApp")
+                if self.whatsapp_notifier and WHATSAPP_PHONE_TO_LIST and all_tenders:
+                    self.whatsapp_notifier.send_daily_report(WHATSAPP_PHONE_TO_LIST, all_tenders)
 
-            # Send email alerts only for new/closing tenders (daily report email already sent above)
+            # Closing soon email alert (independent of new tenders)
             if self.email_notifier and EMAIL_TO_LIST:
                 closing_soon = self.db.get_closing_soon_tenders(days=7)
-                if new_tenders:
-                    self.email_notifier.send_new_tender_alert(EMAIL_TO_LIST, new_tenders)
                 if closing_soon:
                     self.email_notifier.send_closing_soon_alert(EMAIL_TO_LIST, closing_soon)
 
