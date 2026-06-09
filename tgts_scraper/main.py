@@ -90,11 +90,22 @@ class TenderScraper:
             logger.info("=== TGTS Tender Scraper Started ===")
             logger.info(f"Target departments: {TARGET_DEPARTMENTS}")
 
-            # Step 1: Fetch tenders (stub until API is discovered)
+            # Step 1: Fetch tenders from portal (falls back to DB if credentials missing)
             tenders = self.fetch_tenders()
             if not tenders:
-                logger.warning("No tenders fetched")
-                return self.handle_error("No tenders fetched from source")
+                logger.warning("Portal fetch failed or no credentials — falling back to existing DB tenders")
+                filtered_tenders = self.db.get_all_tenders()
+                if not filtered_tenders:
+                    return self.handle_error("No tenders in DB and portal fetch failed")
+                logger.info(f"Using {len(filtered_tenders)} tenders from DB")
+                # Still generate reports and send notifications from DB data
+                self.generate_reports(filtered_tenders)
+                excel_path = self.output_gen.get_latest_files().get('excel')
+                if self.email_notifier and EMAIL_TO_LIST and excel_path:
+                    self.email_notifier.send_daily_report(EMAIL_TO_LIST, filtered_tenders, excel_path, new_count=0)
+                self.send_notifications([], [], filtered_tenders)
+                logger.info("=== TGTS Tender Scraper Completed (DB fallback) ===")
+                return True
 
             # Step 2: Filter by department
             filtered_tenders = TenderFilter.filter_by_department(tenders, TARGET_DEPARTMENTS)

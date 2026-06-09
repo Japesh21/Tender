@@ -36,9 +36,8 @@ wheels/
 .env.local
 .env.*.local
 
-# Database
-database/tenders.db
-database/*.db
+# Database (allow tenders.db so GitHub Actions has seed data)
+# database/tenders.db
 
 # Logs
 logs/
