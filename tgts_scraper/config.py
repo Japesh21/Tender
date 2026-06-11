@@ -16,25 +16,12 @@ RSA_KEY_ENDPOINT = f"{TENDER_API_BASE}/tender/encrypt?generateKeyPair=true"
 TARGET_DEPARTMENTS = ["IT", "TGTS", "Telangana Government Technology Services"]
 TARGET_DEPARTMENT_IDS = ["1996"]
 
-# Multi-agency config — all on same portal, different department IDs
-AGENCIES = {
-    'TGTS': {
-        'department_ids': ['1996'],
-        'label': 'TGTS',
-    },
-    'TSMSIDC': {
-        'department_ids': ['1778'],
-        'label': 'TSMSIDC',
-    },
-    'TSGRTC': {
-        'department_ids': ['22'],
-        'label': 'TSGRTC',
-    },
-    'TGGENCO': {
-        'department_ids': ['412'],
-        'label': 'TGGENCO',
-    },
-}
+# Full agencies — show ALL tenders (no keyword filter)
+FULL_AGENCIES = {'TGTS', 'TSMSIDC'}
+
+# Multi-agency config — built from ALL_DEPARTMENTS below
+# Will be populated after ALL_DEPARTMENTS definition
+AGENCIES = {}  # populated below
 
 # Full portal department ID map (from tender.telangana.gov.in dropdown)
 ALL_DEPARTMENTS = {
@@ -217,6 +204,17 @@ ALL_DEPARTMENTS = {
     '2229': 'Yadagirigutta Temple Development Authority',
     '552': 'YOUTH ADVANCEMENT,TOURISM &CULTURE (PMU) DEPARTMEN',
 }
+
+# Build AGENCIES from ALL_DEPARTMENTS — each dept gets its own entry
+# FULL_AGENCIES show all tenders; others show only Steps AI keyword matches
+for _dept_id, _dept_name in ALL_DEPARTMENTS.items():
+    # Use dept name as key (cleaned), map to dept ID
+    _key = _dept_name.upper().strip()
+    AGENCIES[_key] = {
+        'department_ids': [_dept_id],
+        'label': _dept_name,
+        'full': _dept_id in ('1996', '1778'),  # TGTS and TSMSIDC get all tenders
+    }
 
 # Steps AI keyword filter — tenders matching any of these keywords are flagged
 STEPS_AI_KEYWORDS = [
