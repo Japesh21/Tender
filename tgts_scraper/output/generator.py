@@ -151,9 +151,14 @@ class OutputGenerator:
             IST = timezone(timedelta(hours=5, minutes=30))
             today_ist = datetime.now(IST).date()
 
-            def is_new_tender(created_at_str):
+            def is_new_tender(published_date_str):
+                """A tender is 'new' if its published_date is today or yesterday (IST)."""
+                if not published_date_str:
+                    return False
                 try:
-                    return datetime.fromisoformat(str(created_at_str)).date() == today_ist
+                    # Portal format: "09/06/2026 11:36 AM"
+                    dt = datetime.strptime(str(published_date_str).strip(), '%d/%m/%Y %I:%M %p')
+                    return dt.date() >= (today_ist - timedelta(days=1))
                 except:
                     return False
 
@@ -162,7 +167,7 @@ class OutputGenerator:
             tenders_json = json.dumps(tenders)
 
             # Count by state
-            new_count = sum(1 for t in tenders if is_new_tender(t.get('created_at')))
+            new_count = sum(1 for t in tenders if is_new_tender(t.get('published_date')))
             removed_count = sum(1 for t in tenders if t.get('status') == 'Removed')
             active_count = len(tenders) - removed_count
 
@@ -183,7 +188,7 @@ class OutputGenerator:
             table_rows.append('<tbody id="tenderTableBody">')
 
             for i, tender in enumerate(tenders, 1):
-                is_new = is_new_tender(tender.get('created_at'))
+                is_new = is_new_tender(tender.get('published_date'))
                 is_removed = tender.get('status') == 'Removed'
 
                 if is_new:

@@ -264,20 +264,20 @@ class TenderScraper:
             logger.error(f"Error generating reports: {e}")
 
     def send_notifications(self, new_tenders: List[Dict], updated_tenders: List[Dict], all_tenders: List[Dict]):
-        """Send notifications — new tender alert on both channels when new tenders found, else full daily report"""
+        """Send notifications — always send full report every run; additionally alert when new tenders found"""
         try:
+            # Always send full daily report on WhatsApp every run so user can verify pipeline
+            if self.whatsapp_notifier and WHATSAPP_PHONE_TO_LIST and all_tenders:
+                logger.info(f"Sending full daily report to WhatsApp ({len(all_tenders)} tenders)")
+                self.whatsapp_notifier.send_daily_report(WHATSAPP_PHONE_TO_LIST, all_tenders)
+
+            # Additionally, if new tenders found — send instant alert on BOTH channels
             if new_tenders:
-                # Instant alert with ONLY the new tenders on both email + WhatsApp
-                logger.info(f"NEW tenders detected: {len(new_tenders)} — sending alerts")
+                logger.info(f"NEW tenders detected: {len(new_tenders)} — sending alerts on email + WhatsApp")
                 if self.email_notifier and EMAIL_TO_LIST:
                     self.email_notifier.send_new_tender_alert(EMAIL_TO_LIST, new_tenders)
                 if self.whatsapp_notifier and WHATSAPP_PHONE_TO_LIST:
                     self.whatsapp_notifier.send_new_tender_alert(WHATSAPP_PHONE_TO_LIST, new_tenders)
-            else:
-                # No new tenders — WhatsApp gets the full daily report so user always gets a morning message
-                logger.info("No new tenders — sending full daily report to WhatsApp")
-                if self.whatsapp_notifier and WHATSAPP_PHONE_TO_LIST and all_tenders:
-                    self.whatsapp_notifier.send_daily_report(WHATSAPP_PHONE_TO_LIST, all_tenders)
 
             # Closing soon email alert (independent of new tenders)
             if self.email_notifier and EMAIL_TO_LIST:

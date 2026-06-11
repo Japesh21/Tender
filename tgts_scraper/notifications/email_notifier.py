@@ -114,38 +114,54 @@ class EmailNotifier:
             total = len(tenders)
             subject = f"📊 TGTS Daily Tender Report - {datetime.now().strftime('%Y-%m-%d')} ({total} tenders, {new_count} new)"
 
-            # Build compact HTML table (top 20 rows)
-            table_html = "<table style='border-collapse:collapse;width:100%;'>"
-            table_html += "<thead><tr style='background-color:#4CAF50;color:white;'>"
-            table_html += "<th style='padding:10px;border:1px solid #ddd;'>Tender ID</th>"
-            table_html += "<th style='padding:10px;border:1px solid #ddd;'>Title</th>"
-            table_html += "<th style='padding:10px;border:1px solid #ddd;'>Closing Date</th>"
-            table_html += "<th style='padding:10px;border:1px solid #ddd;'>Department</th>"
+            # Build full HTML table with updated columns
+            th_style = "padding:8px 10px;border:1px solid #ddd;background:#1565C0;color:white;text-align:left;font-size:13px;"
+            td_style = "padding:8px 10px;border:1px solid #ddd;font-size:13px;"
+            table_html = f"<table style='border-collapse:collapse;width:100%;font-family:Arial,sans-serif;'>"
+            table_html += f"<thead><tr>"
+            table_html += f"<th style='{th_style}'>#</th>"
+            table_html += f"<th style='{th_style}'>Tender ID</th>"
+            table_html += f"<th style='{th_style}'>Title</th>"
+            table_html += f"<th style='{th_style}'>Category</th>"
+            table_html += f"<th style='{th_style}'>Published Date & Time</th>"
+            table_html += f"<th style='{th_style}'>Bid Submission Closing</th>"
+            table_html += f"<th style='{th_style}'>Status</th>"
+            table_html += f"<th style='{th_style}'>Action</th>"
             table_html += "</tr></thead><tbody>"
 
-            for tender in tenders[:20]:
-                table_html += f"<tr style='border-bottom:1px solid #ddd;'>"
-                table_html += f"<td style='padding:10px;border:1px solid #ddd;'>{tender.get('tender_id', '')}</td>"
-                table_html += f"<td style='padding:10px;border:1px solid #ddd;'>{tender.get('title', '')[:60]}...</td>"
-                table_html += f"<td style='padding:10px;border:1px solid #ddd;'>{tender.get('closing_date', '')}</td>"
-                table_html += f"<td style='padding:10px;border:1px solid #ddd;'>{tender.get('department', '')}</td>"
+            for i, tender in enumerate(tenders, 1):
+                title = tender.get('title', '').replace('\r\n', ' ').replace('\n', ' ').strip()
+                doc_link = tender.get('document_link', '')
+                action = f"<a href='{doc_link}' style='color:#1565C0;'>View Docs</a>" if doc_link else "N/A"
+                status = tender.get('status', 'Active')
+                if status == 'Removed':
+                    row_bg = "#FFCDD2"
+                elif i % 2 == 0:
+                    row_bg = "#f5f5f5"
+                else:
+                    row_bg = "#ffffff"
+                table_html += f"<tr style='background:{row_bg};'>"
+                table_html += f"<td style='{td_style}'>{i}</td>"
+                table_html += f"<td style='{td_style}'>{tender.get('tender_id', '')}</td>"
+                table_html += f"<td style='{td_style}'>{title}</td>"
+                table_html += f"<td style='{td_style}'>{tender.get('tender_category') or 'N/A'}</td>"
+                table_html += f"<td style='{td_style}'>{tender.get('published_date', '')}</td>"
+                table_html += f"<td style='{td_style}'>{tender.get('closing_date', '')}</td>"
+                table_html += f"<td style='{td_style}'>{status}</td>"
+                table_html += f"<td style='{td_style}'>{action}</td>"
                 table_html += "</tr>"
 
             table_html += "</tbody></table>"
-            if total > 20:
-                table_html += f"<p style='color:#666;font-size:12px;'>Showing top 20 of {total} tenders. See attached Excel for complete list.</p>"
 
             body = f"""
-            <h2>📊 TGTS Daily Tender Report</h2>
+            <h2 style='color:#1565C0;'>📊 TGTS Daily Tender Report</h2>
             <p><strong>Date:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} IST</p>
-            <p><strong>Total Tenders:</strong> {total}</p>
-            <p><strong>🆕 New Today:</strong> {new_count}</p>
+            <p><strong>Total Tenders:</strong> {total} &nbsp;|&nbsp; <strong>🆕 New Today:</strong> {new_count}</p>
 
-            <h3>Recent Tenders</h3>
             {table_html}
 
-            <p style='margin-top:20px;padding:10px;background:#E3F2FD;border-left:4px solid #2196F3;'>
-            <strong>📎 Attachment:</strong> Full tender list with all details is in the attached Excel file (tgts_tenders.xlsx).
+            <p style='margin-top:20px;padding:10px;background:#E3F2FD;border-left:4px solid #2196F3;font-size:13px;'>
+            <strong>📎 Attachment:</strong> Full tender list with all details is in the attached Excel file.
             </p>
             """
 
