@@ -2,7 +2,7 @@ name: TGTS Tender Scraper
 
 on:
   schedule:
-    - cron: '30 3 * * *'  # 9:00 AM IST = 3:30 AM UTC every day
+    - cron: '0 * * * *'   # Every hour (on the hour, UTC)
   workflow_dispatch:       # allows manual trigger from GitHub UI
 
 jobs:
