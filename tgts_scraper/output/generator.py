@@ -165,7 +165,7 @@ class OutputGenerator:
 
             # JSON data for buttons to send via API
             import json
-            from config import AGENCIES, STEPS_AI_KEYWORDS
+            from config import AGENCIES, STEPS_AI_KEYWORDS, ALL_DEPARTMENTS
             tenders_json = json.dumps(tenders)
 
             # Steps AI keyword matching
@@ -185,11 +185,11 @@ class OutputGenerator:
                 ag = t.get('source_agency', 'TGTS')
                 agency_counts[ag] = agency_counts.get(ag, 0) + 1
 
-            # All unique agencies present in data (sorted, TGTS+TSMSIDC first)
-            all_agencies_in_data = sorted(agency_counts.keys())
+            # All 150 departments — show every dept as button, 0 if no tenders yet
+            # TGTS and TSMSIDC first, then rest alphabetically
             priority = ['TGTS', 'TSMSIDC']
-            ordered_agencies = [a for a in priority if a in agency_counts] + \
-                               [a for a in all_agencies_in_data if a not in priority]
+            all_dept_names = sorted(ALL_DEPARTMENTS.values())
+            ordered_agencies = priority + [n for n in all_dept_names if n not in priority]
 
             # Build table manually for per-row styling
             th = 'style="padding:10px;border:1px solid #ddd;background:#1565C0;color:white;text-align:left;white-space:nowrap;"'
