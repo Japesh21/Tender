@@ -153,6 +153,7 @@ class TenderParser:
             tender = {
                 'department': item[0] if len(item) > 0 else None,
                 'tender_id': item[1] if len(item) > 1 else None,
+                'tender_category': str(item[3]).strip() if len(item) > 3 and item[3] else '',
                 'title': item[4] if len(item) > 4 and item[4] else (item[2] if len(item) > 2 else None),
                 'published_date': item[6] if len(item) > 6 else None,
                 'closing_date': item[8] if len(item) > 8 else None,

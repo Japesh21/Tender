@@ -221,6 +221,13 @@ class TenderScraper:
                         # Mark as seen
                         self.db.mark_tender_seen(tender['tender_id'])
 
+            # Detect tenders no longer on portal → mark as Removed
+            fetched_ids = {t['tender_id'] for t in tenders}
+            for db_tender in self.db.get_all_tenders():
+                if db_tender['tender_id'] not in fetched_ids and db_tender.get('status') != 'Removed':
+                    self.db.update_tender(db_tender['tender_id'], {'status': 'Removed'})
+                    logger.info(f"Marked as Removed (no longer on portal): {db_tender['tender_id']}")
+
         except Exception as e:
             logger.error(f"Error processing tenders: {e}")
 

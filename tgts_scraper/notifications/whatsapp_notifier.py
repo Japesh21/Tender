@@ -203,9 +203,12 @@ Reports: CSV & Excel formats available
         for i, tender in enumerate(tenders, 1):
             tender_id = tender.get('tender_id', 'N/A')
             title = tender.get('title', 'N/A').replace('\r\n', ' ').replace('\n', ' ').strip()[:40]
+            category = tender.get('tender_category', '').strip()
             closing = tender.get('closing_date', 'N/A')
 
             tender_lines.append(f"{i}. [{tender_id}] {title}")
+            if category:
+                tender_lines.append(f"   Category: {category}")
             tender_lines.append(f"   Closes: {closing}\n")
 
         footer = f"{'='*40}\n🌐 tender.telangana.gov.in"

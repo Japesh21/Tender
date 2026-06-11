@@ -161,35 +161,66 @@ class OutputGenerator:
             import json
             tenders_json = json.dumps(tenders)
 
+            # Count by state
+            new_count = sum(1 for t in tenders if is_new_tender(t.get('created_at')))
+            removed_count = sum(1 for t in tenders if t.get('status') == 'Removed')
+            active_count = len(tenders) - removed_count
+
             # Build table manually for per-row styling
+            th = 'style="padding:10px;border:1px solid #ddd;background:#4CAF50;color:white;text-align:left;"'
             table_rows = []
-            table_rows.append('<thead><tr style="background-color:#4CAF50;color:white;"><th style="padding:10px;border:1px solid #ddd;">Tender ID</th><th style="padding:10px;border:1px solid #ddd;">Title</th><th style="padding:10px;border:1px solid #ddd;">Department</th><th style="padding:10px;border:1px solid #ddd;">Published</th><th style="padding:10px;border:1px solid #ddd;">Closing</th><th style="padding:10px;border:1px solid #ddd;">Value</th><th style="padding:10px;border:1px solid #ddd;">Status</th></tr></thead>')
-            table_rows.append('<tbody>')
+            table_rows.append(f'<thead><tr>'
+                f'<th {th}>#</th>'
+                f'<th {th}>Tender ID</th>'
+                f'<th {th}>Title</th>'
+                f'<th {th}>Tender Category</th>'
+                f'<th {th}>Published Date & Time</th>'
+                f'<th {th}>Bid Submission Start</th>'
+                f'<th {th}>Bid Submission Closing</th>'
+                f'<th {th}>Action</th>'
+                f'<th {th}>Status</th>'
+                f'</tr></thead>')
+            table_rows.append('<tbody id="tenderTableBody">')
 
-            for tender in tenders:
+            for i, tender in enumerate(tenders, 1):
                 is_new = is_new_tender(tender.get('created_at'))
-                row_style = 'background-color:#C8E6C9;font-weight:bold;' if is_new else ''
-                badge = '🆕 NEW - ' if is_new else ''
+                is_removed = tender.get('status') == 'Removed'
 
-                row_html = f"""<tr style="{row_style}border-bottom:1px solid #ddd;">
-                    <td style="padding:10px;border:1px solid #ddd;">{tender.get('tender_id', '')}</td>
-                    <td style="padding:10px;border:1px solid #ddd;">{badge}{tender.get('title', '')}</td>
-                    <td style="padding:10px;border:1px solid #ddd;">{tender.get('department', '')}</td>
-                    <td style="padding:10px;border:1px solid #ddd;">{tender.get('published_date', '')}</td>
-                    <td style="padding:10px;border:1px solid #ddd;">{tender.get('closing_date', '')}</td>
-                    <td style="padding:10px;border:1px solid #ddd;">₹{tender.get('tender_value', 0)}</td>
-                    <td style="padding:10px;border:1px solid #ddd;">{tender.get('status', '')}</td>
-                </tr>"""
+                if is_new:
+                    row_style = 'background-color:#C8E6C9;font-weight:bold;'
+                    badge = '🆕 '
+                    state = 'new'
+                elif is_removed:
+                    row_style = 'background-color:#FFCDD2;'
+                    badge = '🗑 '
+                    state = 'removed'
+                else:
+                    row_style = ''
+                    badge = ''
+                    state = 'active'
+
+                doc_link = tender.get('document_link', '')
+                action_cell = f'<a href="{doc_link}" target="_blank" style="background:#1976D2;color:white;padding:4px 10px;border-radius:3px;text-decoration:none;font-size:12px;">View Docs</a>' if doc_link else 'N/A'
+
+                td = 'style="padding:8px;border:1px solid #ddd;"'
+                row_html = (f'<tr style="{row_style}border-bottom:1px solid #ddd;" data-state="{state}">'
+                    f'<td {td}>{i}</td>'
+                    f'<td {td}>{tender.get("tender_id", "")}</td>'
+                    f'<td {td}>{badge}{tender.get("title", "").replace(chr(13), " ").replace(chr(10), " ").strip()}</td>'
+                    f'<td {td}>{tender.get("tender_category", "") or "-"}</td>'
+                    f'<td {td}>{tender.get("published_date", "")}</td>'
+                    f'<td {td}>{tender.get("published_date", "")}</td>'
+                    f'<td {td}>{tender.get("closing_date", "")}</td>'
+                    f'<td {td}>{action_cell}</td>'
+                    f'<td {td}>{tender.get("status", "")}</td>'
+                    f'</tr>')
                 table_rows.append(row_html)
 
             table_rows.append('</tbody>')
-            html_table = '<table style="border-collapse:collapse;width:100%;">' + ''.join(table_rows) + '</table>'
-
-            # Highlight summary
-            new_count = sum(1 for t in tenders if is_new_tender(t.get('created_at')))
+            html_table = '<table id="tenderTable" style="border-collapse:collapse;width:100%;">' + ''.join(table_rows) + '</table>'
             new_summary = f'<p style="background:#E8F5E9;padding:10px;border-left:4px solid #4CAF50;"><strong>🆕 {new_count} New Tender(s) Added Today</strong></p>' if new_count > 0 else ''
 
-            # Action buttons - JavaScript to send via API
+            # Action buttons + filter tabs
             buttons_html = f"""
             <div style="margin:20px 0;padding:20px;background:#f0f0f0;border-radius:5px;">
                 <p style="margin:0 0 15px 0;font-weight:bold;font-size:14px;">📨 Send All {len(tenders)} Tenders:</p>
@@ -197,6 +228,12 @@ class OutputGenerator:
                 <button onclick="sendWhatsApp()" style="background:#25D366;color:white;padding:12px 20px;border-radius:5px;border:none;margin-right:10px;font-size:14px;font-weight:bold;cursor:pointer;">💬 Send All to WhatsApp</button>
                 <a href="http://localhost:5000/api/download-excel" style="background:#FF9800;color:white;padding:12px 20px;border-radius:5px;text-decoration:none;font-size:14px;font-weight:bold;display:inline-block;">📥 Download Excel</a>
                 <p id="status" style="margin-top:10px;color:#666;font-size:12px;"></p>
+            </div>
+
+            <div style="margin:15px 0;">
+                <button class="filter-tab" data-filter="all" onclick="filterTenders('all')" style="background:#1976D2;color:white;padding:8px 18px;border:3px solid transparent;border-radius:5px;margin-right:8px;font-size:13px;cursor:pointer;font-weight:bold;">All ({len(tenders)})</button>
+                <button class="filter-tab" data-filter="new" onclick="filterTenders('new')" style="background:#388E3C;color:white;padding:8px 18px;border:3px solid transparent;border-radius:5px;margin-right:8px;font-size:13px;cursor:pointer;">🆕 New ({new_count})</button>
+                <button class="filter-tab" data-filter="removed" onclick="filterTenders('removed')" style="background:#C62828;color:white;padding:8px 18px;border:3px solid transparent;border-radius:5px;font-size:13px;cursor:pointer;">🗑 Removed ({removed_count})</button>
             </div>
 
             <script>
@@ -268,6 +305,22 @@ class OutputGenerator:
                     btn.disabled = false;
                     btn.textContent = '💬 Send All to WhatsApp';
                 }}
+            }}
+
+            function filterTenders(type) {{
+                const rows = document.querySelectorAll('tr[data-state]');
+                rows.forEach(row => {{
+                    const state = row.getAttribute('data-state');
+                    if (type === 'all') {{
+                        row.style.display = '';
+                    }} else {{
+                        row.style.display = (state === type) ? '' : 'none';
+                    }}
+                }});
+                document.querySelectorAll('.filter-tab').forEach(btn => {{
+                    btn.style.fontWeight = btn.getAttribute('data-filter') === type ? 'bold' : 'normal';
+                    btn.style.borderBottom = btn.getAttribute('data-filter') === type ? '3px solid #1565C0' : '3px solid transparent';
+                }});
             }}
             </script>
             """

@@ -61,7 +61,14 @@ class TenderDatabase:
                 cursor.execute('ALTER TABLE tenders ADD COLUMN corrigendum_link TEXT')
                 conn.commit()
             except sqlite3.OperationalError:
-                pass  # Column already exists
+                pass
+
+            # Migrate: add tender_category if not present
+            try:
+                cursor.execute('ALTER TABLE tenders ADD COLUMN tender_category TEXT')
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
 
             # Create change log table for tracking tender updates
             cursor.execute('''
@@ -110,8 +117,9 @@ class TenderDatabase:
             cursor.execute('''
                 INSERT INTO tenders (
                     tender_id, title, department, published_date, closing_date,
-                    emd, tender_value, document_link, pdf_link, corrigendum_link, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    emd, tender_value, document_link, pdf_link, corrigendum_link,
+                    status, tender_category
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 tender.get('tender_id'),
                 tender.get('title'),
@@ -123,7 +131,8 @@ class TenderDatabase:
                 tender.get('document_link'),
                 tender.get('pdf_link'),
                 tender.get('corrigendum_link'),
-                tender.get('status')
+                tender.get('status'),
+                tender.get('tender_category', '')
             ))
 
             conn.commit()

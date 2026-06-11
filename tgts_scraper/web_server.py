@@ -82,28 +82,38 @@ def send_email():
             "<h2 style='color:#333;'>TGTS Tenders Report</h2>",
             f"<p><strong>Total Tenders: {len(tenders)}</strong> | Generated: {datetime.now().strftime('%d %b %Y %H:%M')}</p>",
             "<table style='border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;'>",
-            "<tr style='background:#4CAF50;color:white;'>",
+            "<tr style='background:#1565C0;color:white;'>",
             "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>#</th>",
             "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Tender ID</th>",
             "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Title</th>",
-            "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Closing Date</th>",
+            "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Category</th>",
+            "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Published Date & Time</th>",
+            "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Bid Submission Closing</th>",
             "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Status</th>",
-            "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Document</th>",
+            "<th style='border:1px solid #ddd;padding:8px;text-align:left;'>Action</th>",
             "</tr>"
         ]
 
         for i, tender in enumerate(tenders, 1):
             title = tender.get('title', '').replace('\r\n', ' ').replace('\n', ' ').strip()
             doc_link = tender.get('document_link', '')
-            doc_cell = f"<a href='{doc_link}' style='color:#0066cc;'>View</a>" if doc_link else "N/A"
-            row_bg = "#f9f9f9" if i % 2 == 0 else "#ffffff"
+            doc_cell = f"<a href='{doc_link}' style='color:#0066cc;'>View Docs</a>" if doc_link else "N/A"
+            status = tender.get('status', 'Active')
+            if status == 'Removed':
+                row_bg = "#FFCDD2"
+            elif i % 2 == 0:
+                row_bg = "#f9f9f9"
+            else:
+                row_bg = "#ffffff"
             body_lines.append(
                 f"<tr style='background:{row_bg};'>"
                 f"<td style='border:1px solid #ddd;padding:8px;'>{i}</td>"
                 f"<td style='border:1px solid #ddd;padding:8px;'>{tender.get('tender_id', '')}</td>"
                 f"<td style='border:1px solid #ddd;padding:8px;'>{title}</td>"
+                f"<td style='border:1px solid #ddd;padding:8px;'>{tender.get('tender_category', '')}</td>"
+                f"<td style='border:1px solid #ddd;padding:8px;'>{tender.get('published_date', '')}</td>"
                 f"<td style='border:1px solid #ddd;padding:8px;'>{tender.get('closing_date', '')}</td>"
-                f"<td style='border:1px solid #ddd;padding:8px;'>{tender.get('status', '')}</td>"
+                f"<td style='border:1px solid #ddd;padding:8px;'>{status}</td>"
                 f"<td style='border:1px solid #ddd;padding:8px;'>{doc_cell}</td>"
                 f"</tr>"
             )
