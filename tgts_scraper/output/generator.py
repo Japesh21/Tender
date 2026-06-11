@@ -239,7 +239,7 @@ class OutputGenerator:
                     f'<td {td}>{badge}{tender.get("title", "").replace(chr(13), " ").replace(chr(10), " ").strip()}</td>'
                     f'<td {td_nowrap}>{tender.get("tender_category") or "N/A"}</td>'
                     f'<td {td_nowrap}>{tender.get("published_date", "")}</td>'
-                    f'<td {td_nowrap}>{tender.get("bid_submission_start") or tender.get("published_date", "")}</td>'
+                    f'<td {td_nowrap}>{tender.get("bid_submission_start") or "—"}</td>'
                     f'<td {td_nowrap}>{tender.get("closing_date", "")}</td>'
                     f'<td {td_nowrap}>{action_cell}</td>'
                     f'<td {td_nowrap}>{tender.get("status", "")}</td>'
