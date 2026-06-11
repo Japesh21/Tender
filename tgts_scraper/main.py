@@ -95,10 +95,12 @@ class TenderScraper:
             tenders = self.fetch_tenders()
             if not tenders:
                 logger.warning("Portal fetch failed or no credentials — falling back to existing DB tenders")
-                filtered_tenders = self.db.get_all_tenders()
+                all_db = self.db.get_all_tenders()
+                # Only show Active tenders in fallback — don't show old Removed ones
+                filtered_tenders = [t for t in all_db if t.get('status') != 'Removed']
                 if not filtered_tenders:
                     return self.handle_error("No tenders in DB and portal fetch failed")
-                logger.info(f"Using {len(filtered_tenders)} tenders from DB")
+                logger.info(f"Using {len(filtered_tenders)} active tenders from DB (filtered out {len(all_db) - len(filtered_tenders)} Removed)")
                 # Still generate reports and send notifications from DB data
                 self.generate_reports(filtered_tenders)
                 excel_path = self.output_gen.get_latest_files().get('excel')
@@ -113,11 +115,12 @@ class TenderScraper:
             if not filtered_tenders:
                 logger.warning("No tenders matched filter criteria")
 
-            # Step 3: Detect new and updated tenders
+            # Step 3: Detect new/updated tenders + mark removed ones in DB
             new_tenders, updated_tenders = self.process_tenders(filtered_tenders)
 
-            # Step 4: Generate reports
-            self.generate_reports(filtered_tenders)
+            # Step 4: Generate reports from full DB state (includes Active + New green + Removed red)
+            all_db_tenders = self.db.get_all_tenders()
+            self.generate_reports(all_db_tenders)
 
             # Step 4b: Send daily report email with Excel attachment
             excel_path = self.output_gen.get_latest_files().get('excel')
@@ -125,16 +128,16 @@ class TenderScraper:
                 logger.info("Sending daily report email with Excel attachment...")
                 self.email_notifier.send_daily_report(
                     EMAIL_TO_LIST,
-                    filtered_tenders,
+                    all_db_tenders,
                     excel_path,
                     new_count=len(new_tenders)
                 )
 
             # Step 5: Send notifications (WhatsApp always sends all tenders; email sends new/closing alerts)
-            self.send_notifications(new_tenders, updated_tenders, filtered_tenders)
+            self.send_notifications(new_tenders, updated_tenders, all_db_tenders)
 
             # Step 6: Log summary
-            self.log_summary(filtered_tenders, new_tenders, updated_tenders)
+            self.log_summary(all_db_tenders, new_tenders, updated_tenders)
 
             logger.info("=== TGTS Tender Scraper Completed Successfully ===")
             return True

@@ -156,6 +156,7 @@ class TenderParser:
                 'tender_category': str(item[3]).strip() if len(item) > 3 and item[3] else '',
                 'title': item[4] if len(item) > 4 and item[4] else (item[2] if len(item) > 2 else None),
                 'published_date': item[6] if len(item) > 6 else None,
+                'bid_submission_start': item[7] if len(item) > 7 else None,
                 'closing_date': item[8] if len(item) > 8 else None,
                 'emd': None,
                 'tender_value': TenderParser._parse_number(item[5]) if len(item) > 5 else None,
