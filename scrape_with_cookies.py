@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # ─── PASTE YOUR FRESH COOKIE HERE ────────────────────────────────────────────
-COOKIE = "ApplicationGatewayAffinityCORS=0ad08d5387945ce498fa39f3142fa5e1; ApplicationGatewayAffinity=0ad08d5387945ce498fa39f3142fa5e1; SRVID=62b84d725677352c7554aa8bbcb1e01f; JSESSIONID=3D5A59FEA2780D3E28A922E5A64423B5.inst1tms"
+COOKIE = "_ga_X968Z7MRCZ=GS2.1.s1779284790$o1$g0$t1779284790$j60$l0$h0; _ga=GA1.1.366867877.1779284790; ApplicationGatewayAffinityCORS=3a47e806014a4c80710bb7f765456535; ApplicationGatewayAffinity=3a47e806014a4c80710bb7f765456535; SRVID=cee9960eca599e33affdfbed3aa12c29; JSESSIONID=2460B7064EFE86C745566DFA2307416C.inst3tms"
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Departments to scrape: (agency_name, dept_id)
@@ -29,8 +29,8 @@ COOKIE = "ApplicationGatewayAffinityCORS=0ad08d5387945ce498fa39f3142fa5e1; Appli
 DEPARTMENTS = [
     ('TGTS',    '1996'),
     ('TSMSIDC', '1778'),
-    # ('TSGRTC',  'XXXX'),   # add when you find the ID
-    # ('TGGENCO', 'XXXX'),   # add when you find the ID
+    ('TSGRTC',  '22'),
+    ('TGGENCO', '412'),
 ]
 
 BASE_URL = "https://tender.telangana.gov.in"
