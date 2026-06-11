@@ -152,13 +152,13 @@ class OutputGenerator:
             today_ist = datetime.now(IST).date()
 
             def is_new_tender(published_date_str):
-                """A tender is 'new' if its published_date is today or yesterday (IST)."""
+                """A tender is 'new' if its published_date is TODAY in IST strictly."""
                 if not published_date_str:
                     return False
                 try:
                     # Portal format: "09/06/2026 11:36 AM"
                     dt = datetime.strptime(str(published_date_str).strip(), '%d/%m/%Y %I:%M %p')
-                    return dt.date() >= (today_ist - timedelta(days=1))
+                    return dt.date() == today_ist
                 except:
                     return False
 
@@ -172,7 +172,7 @@ class OutputGenerator:
             active_count = len(tenders) - removed_count
 
             # Build table manually for per-row styling
-            th = 'style="padding:10px;border:1px solid #ddd;background:#4CAF50;color:white;text-align:left;"'
+            th = 'style="padding:10px;border:1px solid #ddd;background:#1565C0;color:white;text-align:left;white-space:nowrap;"'
             table_rows = []
             table_rows.append(f'<thead><tr>'
                 f'<th {th}>#</th>'
@@ -214,16 +214,17 @@ class OutputGenerator:
                 ) if doc_link else '<span style="color:#999;font-size:12px;">N/A</span>'
 
                 td = 'style="padding:8px;border:1px solid #ddd;"'
+                td_nowrap = 'style="padding:8px;border:1px solid #ddd;white-space:nowrap;"'
                 row_html = (f'<tr style="{row_style}border-bottom:1px solid #ddd;" data-state="{state}">'
-                    f'<td {td}>{i}</td>'
-                    f'<td {td}>{tender.get("tender_id", "")}</td>'
+                    f'<td {td_nowrap}>{i}</td>'
+                    f'<td {td_nowrap}>{tender.get("tender_id", "")}</td>'
                     f'<td {td}>{badge}{tender.get("title", "").replace(chr(13), " ").replace(chr(10), " ").strip()}</td>'
-                    f'<td {td}>{tender.get("tender_category") or "N/A"}</td>'
-                    f'<td {td}>{tender.get("published_date", "")}</td>'
-                    f'<td {td}>{tender.get("bid_submission_start") or tender.get("published_date", "")}</td>'
-                    f'<td {td}>{tender.get("closing_date", "")}</td>'
-                    f'<td {td}>{action_cell}</td>'
-                    f'<td {td}>{tender.get("status", "")}</td>'
+                    f'<td {td_nowrap}>{tender.get("tender_category") or "N/A"}</td>'
+                    f'<td {td_nowrap}>{tender.get("published_date", "")}</td>'
+                    f'<td {td_nowrap}>{tender.get("bid_submission_start") or tender.get("published_date", "")}</td>'
+                    f'<td {td_nowrap}>{tender.get("closing_date", "")}</td>'
+                    f'<td {td_nowrap}>{action_cell}</td>'
+                    f'<td {td_nowrap}>{tender.get("status", "")}</td>'
                     f'</tr>')
                 table_rows.append(row_html)
 
