@@ -77,6 +77,13 @@ class TenderDatabase:
             except sqlite3.OperationalError:
                 pass
 
+            # Migrate: add source_agency if not present
+            try:
+                cursor.execute('ALTER TABLE tenders ADD COLUMN source_agency TEXT DEFAULT "TGTS"')
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
             # Create change log table for tracking tender updates
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS tender_changelog (
@@ -125,8 +132,8 @@ class TenderDatabase:
                 INSERT INTO tenders (
                     tender_id, title, department, published_date, closing_date,
                     emd, tender_value, document_link, pdf_link, corrigendum_link,
-                    status, tender_category, bid_submission_start
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    status, tender_category, bid_submission_start, source_agency
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 tender.get('tender_id'),
                 tender.get('title'),
@@ -140,7 +147,8 @@ class TenderDatabase:
                 tender.get('corrigendum_link'),
                 tender.get('status'),
                 tender.get('tender_category', ''),
-                tender.get('bid_submission_start', '')
+                tender.get('bid_submission_start', ''),
+                tender.get('source_agency', 'TGTS')
             ))
 
             conn.commit()

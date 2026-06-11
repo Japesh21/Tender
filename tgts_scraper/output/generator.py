@@ -4,6 +4,7 @@ Output generator for CSV and Excel formats
 
 import logging
 import os
+import re
 from typing import List, Dict, Optional
 import pandas as pd
 from datetime import datetime, timezone, timedelta
@@ -164,12 +165,24 @@ class OutputGenerator:
 
             # JSON data for buttons to send via API
             import json
+            from config import AGENCIES, STEPS_AI_KEYWORDS
             tenders_json = json.dumps(tenders)
+
+            # Steps AI keyword matching
+            ai_patterns = [re.compile(re.escape(kw), re.IGNORECASE) for kw in STEPS_AI_KEYWORDS]
+            def is_ai_tender(title):
+                return any(p.search(title or '') for p in ai_patterns)
 
             # Count by state
             new_count = sum(1 for t in tenders if is_new_tender(t.get('published_date')))
             removed_count = sum(1 for t in tenders if t.get('status') == 'Removed')
             active_count = len(tenders) - removed_count
+            ai_count = sum(1 for t in tenders if is_ai_tender(t.get('title', '')))
+
+            # Per-agency counts for navbar
+            agency_counts = {}
+            for agency_name in AGENCIES:
+                agency_counts[agency_name] = sum(1 for t in tenders if t.get('source_agency') == agency_name)
 
             # Build table manually for per-row styling
             th = 'style="padding:10px;border:1px solid #ddd;background:#1565C0;color:white;text-align:left;white-space:nowrap;"'
@@ -190,6 +203,8 @@ class OutputGenerator:
             for i, tender in enumerate(tenders, 1):
                 is_new = is_new_tender(tender.get('published_date'))
                 is_removed = tender.get('status') == 'Removed'
+                agency = tender.get('source_agency', 'TGTS')
+                ai_match = is_ai_tender(tender.get('title', ''))
 
                 if is_new:
                     row_style = 'background-color:#C8E6C9;font-weight:bold;'
@@ -204,6 +219,9 @@ class OutputGenerator:
                     badge = ''
                     state = 'active'
 
+                if ai_match:
+                    badge = '🤖 ' + badge
+
                 doc_link = tender.get('document_link', '')
                 action_cell = (
                     f'<a href="{doc_link}" target="_blank" style="'
@@ -215,7 +233,7 @@ class OutputGenerator:
 
                 td = 'style="padding:8px;border:1px solid #ddd;"'
                 td_nowrap = 'style="padding:8px;border:1px solid #ddd;white-space:nowrap;"'
-                row_html = (f'<tr style="{row_style}border-bottom:1px solid #ddd;" data-state="{state}">'
+                row_html = (f'<tr style="{row_style}border-bottom:1px solid #ddd;" data-state="{state}" data-agency="{agency}" data-ai="{str(ai_match).lower()}">'
                     f'<td {td_nowrap}>{i}</td>'
                     f'<td {td_nowrap}>{tender.get("tender_id", "")}</td>'
                     f'<td {td}>{badge}{tender.get("title", "").replace(chr(13), " ").replace(chr(10), " ").strip()}</td>'
@@ -232,6 +250,18 @@ class OutputGenerator:
             html_table = '<table id="tenderTable" style="border-collapse:collapse;width:100%;">' + ''.join(table_rows) + '</table>'
             new_summary = f'<p style="background:#E8F5E9;padding:10px;border-left:4px solid #4CAF50;"><strong>🆕 {new_count} New Tender(s) Added Today</strong></p>' if new_count > 0 else ''
 
+            # Build agency navbar buttons (outside f-string to avoid backslash issue)
+            agency_btn_parts = []
+            for name, cfg in AGENCIES.items():
+                count = agency_counts.get(name, 0)
+                agency_btn_parts.append(
+                    f'<button class="agency-tab" data-agency="{name}" onclick="filterAgency(\'{name}\')" '
+                    f'style="background:#1976D2;color:white;padding:9px 20px;border:none;'
+                    f'border-radius:5px 5px 0 0;margin-right:4px;font-size:13px;cursor:pointer;">'
+                    f'{cfg["label"]} ({count})</button>'
+                )
+            agency_buttons_html = ''.join(agency_btn_parts)
+
             # Action buttons + filter tabs
             buttons_html = f"""
             <div style="margin:20px 0;padding:20px;background:#f0f0f0;border-radius:5px;">
@@ -242,10 +272,15 @@ class OutputGenerator:
                 <p id="status" style="margin-top:10px;color:#666;font-size:12px;"></p>
             </div>
 
-            <div style="margin:15px 0;">
-                <button class="filter-tab" data-filter="all" onclick="filterTenders('all')" style="background:#1976D2;color:white;padding:8px 18px;border:3px solid transparent;border-radius:5px;margin-right:8px;font-size:13px;cursor:pointer;font-weight:bold;">All ({len(tenders)})</button>
-                <button class="filter-tab" data-filter="new" onclick="filterTenders('new')" style="background:#388E3C;color:white;padding:8px 18px;border:3px solid transparent;border-radius:5px;margin-right:8px;font-size:13px;cursor:pointer;">🆕 New ({new_count})</button>
-                <button class="filter-tab" data-filter="removed" onclick="filterTenders('removed')" style="background:#C62828;color:white;padding:8px 18px;border:3px solid transparent;border-radius:5px;font-size:13px;cursor:pointer;">🗑 Removed ({removed_count})</button>
+            <div style="margin:15px 0 0 0;border-bottom:2px solid #1565C0;padding-bottom:0;">
+                <button class="agency-tab" data-agency="all" onclick="filterAgency('all')" style="background:#1565C0;color:white;padding:9px 20px;border:none;border-radius:5px 5px 0 0;margin-right:4px;font-size:13px;font-weight:bold;cursor:pointer;border-bottom:3px solid #FFF;">All Agencies ({len(tenders)})</button>
+                {agency_buttons_html}
+            </div>
+            <div style="margin:10px 0 15px 0;">
+                <button class="filter-tab" data-filter="all" onclick="filterTenders('all')" style="background:#455A64;color:white;padding:7px 16px;border:2px solid transparent;border-radius:5px;margin-right:6px;font-size:13px;cursor:pointer;font-weight:bold;">All ({len(tenders)})</button>
+                <button class="filter-tab" data-filter="new" onclick="filterTenders('new')" style="background:#388E3C;color:white;padding:7px 16px;border:2px solid transparent;border-radius:5px;margin-right:6px;font-size:13px;cursor:pointer;">🆕 New ({new_count})</button>
+                <button class="filter-tab" data-filter="removed" onclick="filterTenders('removed')" style="background:#C62828;color:white;padding:7px 16px;border:2px solid transparent;border-radius:5px;margin-right:6px;font-size:13px;cursor:pointer;">🗑 Removed ({removed_count})</button>
+                <button class="filter-tab" data-filter="ai" onclick="filterTenders('ai')" style="background:#6A1B9A;color:white;padding:7px 16px;border:2px solid transparent;border-radius:5px;font-size:13px;cursor:pointer;">🤖 Steps AI ({ai_count})</button>
             </div>
 
             <script>
@@ -319,19 +354,43 @@ class OutputGenerator:
                 }}
             }}
 
+            let activeAgency = 'all';
+            let activeFilter = 'all';
+
+            function filterAgency(agency) {{
+                activeAgency = agency;
+                applyFilters();
+                document.querySelectorAll('.agency-tab').forEach(btn => {{
+                    const isActive = btn.getAttribute('data-agency') === agency;
+                    btn.style.background = isActive ? '#1565C0' : '#1976D2';
+                    btn.style.borderBottom = isActive ? '3px solid #FFF' : 'none';
+                }});
+            }}
+
             function filterTenders(type) {{
+                activeFilter = type;
+                applyFilters();
+                document.querySelectorAll('.filter-tab').forEach(btn => {{
+                    const isActive = btn.getAttribute('data-filter') === type;
+                    btn.style.fontWeight = isActive ? 'bold' : 'normal';
+                    btn.style.border = isActive ? '2px solid #fff' : '2px solid transparent';
+                }});
+            }}
+
+            function applyFilters() {{
                 const rows = document.querySelectorAll('tr[data-state]');
                 rows.forEach(row => {{
+                    const agency = row.getAttribute('data-agency');
                     const state = row.getAttribute('data-state');
-                    if (type === 'all') {{
-                        row.style.display = '';
-                    }} else {{
-                        row.style.display = (state === type) ? '' : 'none';
-                    }}
-                }});
-                document.querySelectorAll('.filter-tab').forEach(btn => {{
-                    btn.style.fontWeight = btn.getAttribute('data-filter') === type ? 'bold' : 'normal';
-                    btn.style.borderBottom = btn.getAttribute('data-filter') === type ? '3px solid #1565C0' : '3px solid transparent';
+                    const isAi = row.getAttribute('data-ai') === 'true';
+
+                    const agencyMatch = activeAgency === 'all' || agency === activeAgency;
+                    let stateMatch = true;
+                    if (activeFilter === 'new') stateMatch = state === 'new';
+                    else if (activeFilter === 'removed') stateMatch = state === 'removed';
+                    else if (activeFilter === 'ai') stateMatch = isAi;
+
+                    row.style.display = (agencyMatch && stateMatch) ? '' : 'none';
                 }});
             }}
             </script>

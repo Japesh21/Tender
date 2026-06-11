@@ -27,6 +27,8 @@ from config import (
     TENDER_WEBSITE_URL,
     TARGET_DEPARTMENTS,
     TARGET_DEPARTMENT_IDS,
+    AGENCIES,
+    STEPS_AI_KEYWORDS,
     OUTPUT_DIR,
     DATABASE_FILE,
     SCHEDULE_TIME,
@@ -110,10 +112,9 @@ class TenderScraper:
                 logger.info("=== TGTS Tender Scraper Completed (DB fallback) ===")
                 return True
 
-            # Step 2: Filter by department
-            filtered_tenders = TenderFilter.filter_by_department(tenders, TARGET_DEPARTMENTS)
-            if not filtered_tenders:
-                logger.warning("No tenders matched filter criteria")
+            # Step 2: Use all fetched tenders (already filtered per-agency in fetch_tenders)
+            filtered_tenders = tenders
+            logger.info(f"Processing {len(filtered_tenders)} tenders across all agencies")
 
             # Step 3: Detect new/updated tenders + mark removed ones in DB
             new_tenders, updated_tenders = self.process_tenders(filtered_tenders)
@@ -164,36 +165,33 @@ class TenderScraper:
                 return None
 
             with TenderFetcher(TENDER_WEBSITE_URL, session=auth_session) as fetcher:
-                if TARGET_DEPARTMENT_IDS:
-                    all_tenders = []
-                    for department_id in TARGET_DEPARTMENT_IDS:
+                all_tenders = []
+                for agency_name, agency_config in AGENCIES.items():
+                    dept_ids = agency_config.get('department_ids', [])
+                    if not dept_ids:
+                        logger.info(f"Skipping {agency_name} — no department IDs configured")
+                        continue
+                    for department_id in dept_ids:
                         search_params = {
                             'nDepartmentID': department_id,
                             'selectedDepartmentID': department_id,
                             'iDisplayLength': '1000'
                         }
-                        logger.info(f"Searching tenders for department id {department_id}")
+                        logger.info(f"Fetching {agency_name} tenders (dept id {department_id})")
                         tenders = fetcher.search_tenders(search_params)
                         if tenders:
+                            for t in tenders:
+                                t['source_agency'] = agency_name
                             all_tenders.extend(tenders)
+                            logger.info(f"  → {len(tenders)} tenders from {agency_name}")
 
-                    if not all_tenders:
-                        logger.warning("No tenders returned from department-specific search")
-                        return []
-
-                    unique_tenders = TenderFilter.remove_duplicates(all_tenders)
-                    logger.info(f"Fetched {len(unique_tenders)} unique tenders from website")
-                    return unique_tenders
-
-                # Fallback: search all tenders if no department IDs are configured
-                search_params = {'queryString': ''}
-                tenders = fetcher.search_tenders(search_params)
-                if not tenders:
-                    logger.warning("No tenders returned from search")
+                if not all_tenders:
+                    logger.warning("No tenders returned from any agency")
                     return []
 
-                logger.info(f"Fetched {len(tenders)} tenders from website")
-                return tenders
+                unique_tenders = TenderFilter.remove_duplicates(all_tenders)
+                logger.info(f"Fetched {len(unique_tenders)} unique tenders across all agencies")
+                return unique_tenders
 
         except Exception as e:
             logger.error(f"Error fetching tenders: {e}")

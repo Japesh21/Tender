@@ -113,6 +113,14 @@ class TenderFilter:
         return filtered
 
     @staticmethod
+    def filter_by_keywords(tenders: List[Dict], keywords: List[str]) -> List[Dict]:
+        """Return tenders whose title matches any keyword (case-insensitive)."""
+        patterns = [re.compile(re.escape(kw), re.IGNORECASE) for kw in keywords]
+        filtered = [t for t in tenders if any(p.search(t.get('title', '')) for p in patterns)]
+        logger.info(f"Keyword filter: {len(filtered)}/{len(tenders)} tenders matched")
+        return filtered
+
+    @staticmethod
     def remove_duplicates(tenders: List[Dict], key: str = 'tender_id') -> List[Dict]:
         """Remove duplicate tenders based on key field"""
         seen = set()

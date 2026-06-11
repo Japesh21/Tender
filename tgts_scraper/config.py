@@ -12,17 +12,39 @@ TENDER_WEBSITE_URL = "https://tender.telangana.gov.in"
 TENDER_API_BASE = "https://tender.telangana.gov.in"  # Update after API discovery
 RSA_KEY_ENDPOINT = f"{TENDER_API_BASE}/tender/encrypt?generateKeyPair=true"
 
-# Target departments to monitor
-TARGET_DEPARTMENTS = [
-    "IT",
-    "TGTS",
-    "Telangana Government Technology Services"
-]
+# Legacy single-agency config (kept for fallback compatibility)
+TARGET_DEPARTMENTS = ["IT", "TGTS", "Telangana Government Technology Services"]
+TARGET_DEPARTMENT_IDS = ["1996"]
 
-# Target department IDs as used by the Telangana tender search page
-# The TGTS option value discovered from the search page is 1996.
-TARGET_DEPARTMENT_IDS = [
-    "1996"
+# Multi-agency config — all on same portal, different department IDs
+# Add department_ids for TSMSIDC, TSGRTC, TGGENCO once known
+AGENCIES = {
+    'TGTS': {
+        'department_ids': ['1996'],
+        'label': 'TGTS',
+    },
+    'TSMSIDC': {
+        'department_ids': [],   # TODO: add dept ID from portal
+        'label': 'TSMSIDC',
+    },
+    'TSGRTC': {
+        'department_ids': [],   # TODO: add dept ID from portal
+        'label': 'TSGRTC',
+    },
+    'TGGENCO': {
+        'department_ids': [],   # TODO: add dept ID from portal
+        'label': 'TGGENCO',
+    },
+}
+
+# Steps AI keyword filter — tenders matching any of these keywords are flagged
+STEPS_AI_KEYWORDS = [
+    'artificial intelligence', 'chatbot', 'chat bot', 'agentic',
+    'large language model', 'LLM', 'machine learning', 'natural language',
+    'NLP', 'generative AI', 'GenAI', 'automation', 'intelligent system',
+    'digital assistant', 'virtual assistant', 'data analytics',
+    'predictive analytics', 'computer vision', 'deep learning',
+    'neural network', 'AI-based', 'AI based', 'smart system',
 ]
 
 # ===== OUTPUT SETTINGS =====
