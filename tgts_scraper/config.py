@@ -24,7 +24,7 @@ AGENCIES = {
         'label': 'TGTS',
     },
     'TSMSIDC': {
-        'department_ids': [],   # TODO: add dept ID from portal
+        'department_ids': ['1778'],
         'label': 'TSMSIDC',
     },
     'TSGRTC': {
