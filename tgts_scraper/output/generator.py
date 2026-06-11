@@ -205,7 +205,13 @@ class OutputGenerator:
                     state = 'active'
 
                 doc_link = tender.get('document_link', '')
-                action_cell = f'<a href="{doc_link}" target="_blank" style="background:#1976D2;color:white;padding:4px 10px;border-radius:3px;text-decoration:none;font-size:12px;">View Docs</a>' if doc_link else 'N/A'
+                action_cell = (
+                    f'<a href="{doc_link}" target="_blank" style="'
+                    f'display:inline-block;background:#1565C0;color:white;'
+                    f'padding:5px 12px;border-radius:4px;text-decoration:none;'
+                    f'font-size:12px;font-weight:600;letter-spacing:0.3px;'
+                    f'box-shadow:0 1px 3px rgba(0,0,0,0.2);white-space:nowrap;">🔗 View Docs</a>'
+                ) if doc_link else '<span style="color:#999;font-size:12px;">N/A</span>'
 
                 td = 'style="padding:8px;border:1px solid #ddd;"'
                 row_html = (f'<tr style="{row_style}border-bottom:1px solid #ddd;" data-state="{state}">'
